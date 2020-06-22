@@ -1,0 +1,61 @@
+      
+    // authors collection sample data
+    db.authors.insert({"name" : "Tom", "dob" : ISODate("2019-01-01T00:00:02.017Z") })
+    
+    // books collection sample data
+    db.books.insert({ "author" : ObjectId("5eed1120461222d1c7159f6b"), "bookTitle" : "A", "award" : 2, "year" : 2015, "SP" : 100, "totalCopies" : 100 })
+  
+    db.books.aggregate([
+        { $group : {_id : "$author", count :{ $sum : "$award"}}},
+        { $match : { count : { "$gte" :  +3} } }
+    ]);
+
+    db.books.find({
+        year: { $gte: 2017 },
+        award: { $gt: 0 }
+    });
+
+    db.books.aggregate([
+        {
+            $project: {
+              author: 1,
+              SP: 1,
+              profit: { $multiply : ["$SP", "$totalCopies"] }
+            }
+        },
+        { 
+            $group : {
+              _id : "$author", 
+              totalBooksSold: {$sum: "$SP"},
+              totalProfit: {$sum: "$profit"},
+            }
+        }
+    ]);
+    
+    db.authors.aggregate([
+        {
+            $match : {
+              dob :{$gte :new Date('2019-01-01)} 
+            }
+        },
+        {
+            $lookup:
+            {
+              from: "books",
+              localField: "_id",
+              foreignField: "author",
+              as: "books"
+            }
+        },
+        { 
+            $project: {
+              author:1,
+              totalPrice: { $sum : "$books.SP" }
+            }
+        },
+        {
+            $match: {
+              totalPrice : {$gte : 400}
+            }
+        }
+    ]);
